@@ -1,0 +1,80 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Elastic Beanstalk Environment with Tomcat Runtime
+
+Parameters:
+  ApplicationName:
+    Type: String
+    Default: DemoTomcatApp
+    Description: Elastic Beanstalk Application Name
+
+  EnvironmentName:
+    Type: String
+    Default: DemoTomcatEnv
+    Description: Elastic Beanstalk Environment Name
+
+  InstanceType:
+    Type: String
+    Default: t2.micro
+    AllowedValues:
+      - t2.micro
+      - t2.small
+      - t3.micro
+      - t3.small
+    Description: EC2 instance type for EB environment
+
+  KeyPairName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: Name of an existing EC2 KeyPair to SSH into instances
+
+  S3BucketName:
+    Type: String
+    Description: S3 bucket where the WAR file is stored
+
+  S3Key:
+    Type: String
+    Description: S3 object key (WAR file, e.g., ROOT.war)
+
+Resources:
+  ElasticBeanstalkApplication:
+    Type: AWS::ElasticBeanstalk::Application
+    Properties:
+      ApplicationName: !Ref ApplicationName
+      Description: Elastic Beanstalk Application running Tomcat
+
+  ApplicationVersion:
+    Type: AWS::ElasticBeanstalk::ApplicationVersion
+    Properties:
+      ApplicationName: !Ref ApplicationName
+      SourceBundle:
+        S3Bucket: !Ref S3BucketName
+        S3Key: !Ref S3Key
+
+  ElasticBeanstalkEnvironment:
+    Type: AWS::ElasticBeanstalk::Environment
+    Properties:
+      EnvironmentName: !Ref EnvironmentName
+      ApplicationName: !Ref ApplicationName
+      SolutionStackName: "64bit Amazon Linux 2 v3.5.7 running Tomcat 8.5 Corretto 11"
+      VersionLabel: !Ref ApplicationVersion
+      OptionSettings:
+        - Namespace: aws:autoscaling:launchconfiguration
+          OptionName: InstanceType
+          Value: !Ref InstanceType
+        - Namespace: aws:autoscaling:launchconfiguration
+          OptionName: EC2KeyName
+          Value: !Ref KeyPairName
+        - Namespace: aws:elasticbeanstalk:environment
+          OptionName: EnvironmentType
+          Value: SingleInstance
+        - Namespace: aws:elasticbeanstalk:application:environment
+          OptionName: JAVA_TOOL_OPTIONS
+          Value: "-Xms256m -Xmx512m"
+
+Outputs:
+  EBAppName:
+    Description: Elastic Beanstalk Application Name
+    Value: !Ref ElasticBeanstalkApplication
+
+  EBEnvironmentURL:
+    Description: URL of the Elastic Beanstalk Environment
+    Value: !GetAtt ElasticBeanstalkEnvironment.EndpointURL
