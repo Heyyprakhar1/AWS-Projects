@@ -1,0 +1,38 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Elastic Beanstalk Environment with PHP Runtime
+
+Resources:
+  MyApplication:
+    Type: AWS::ElasticBeanstalk::Application
+    Properties:
+      ApplicationName: DemoPHPApp
+      Description: PHP Application deployed with Elastic Beanstalk
+
+  MyApplicationVersion:
+    Type: AWS::ElasticBeanstalk::ApplicationVersion
+    Properties:
+      ApplicationName: !Ref MyApplication
+      Description: Initial Version
+      SourceBundle:
+        S3Bucket: placeholder-bucket-name   # replace with your S3 bucket
+        S3Key: placeholder-php-app.zip      # replace with your PHP file/zip
+
+  MyEnvironment:
+    Type: AWS::ElasticBeanstalk::Environment
+    Properties:
+      EnvironmentName: DemoPHPEBEnv
+      ApplicationName: !Ref MyApplication
+      SolutionStackName: "64bit Amazon Linux 2 v3.5.9 running PHP 8.1"
+      VersionLabel: !Ref MyApplicationVersion
+      OptionSettings:
+        - Namespace: aws:autoscaling:launchconfiguration
+          OptionName: InstanceType
+          Value: t2.micro
+        - Namespace: aws:elasticbeanstalk:environment
+          OptionName: EnvironmentType
+          Value: SingleInstance
+
+Outputs:
+  URL:
+    Description: "URL of the Elastic Beanstalk Application"
+    Value: !GetAtt MyEnvironment.EndpointURL
